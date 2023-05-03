@@ -2,7 +2,7 @@ include server_id.sh
 
 # SERVER_ID  server_id.shで定義
 
-PROJECT_ROOT:=/home/isucon/private_isu #/home/isuconを想定
+PROJECT_ROOT:=/home/isucon/private_isu
 APP_DIR:=$(PROJECT_ROOT)/webapp/golang
 
 USER_NAME:=isucon
