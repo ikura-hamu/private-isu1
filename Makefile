@@ -60,7 +60,7 @@ before-bench: set-db-conf	set-nginx-conf rm-slow-log	rm-access-log	restart
 
 # ベンチマーク後に計測結果送信
 .PHONY: after-bench
-after-bench: slow	alp pprof-check
+after-bench: alp alp-diff slow pprof-check
 
 # pprofで記録する
 .PHONY: pprof-record
@@ -70,8 +70,8 @@ pprof-record:
 # pprofで確認する
 .PHONY: pprof-check
 pprof-check:
-	$(eval latest := $(shell ls -rt pprof/ | tail -n 1))
-	go tool pprof -http=localhost:8090 pprof/$(latest)
+	$(eval latest := $(shell ls -rt ../pprof/ | tail -n 1))
+	go tool pprof -http=localhost:8090 ../pprof/$(latest)
 
 # スロークエリ(pt-query-digest)
 .PHONY: slow
