@@ -192,8 +192,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		// query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		query := "SELECT u.*, c.* FROM `comments` AS c JOIN `users` AS u ON c.user_id = u.id WHERE c.post_id = ? ORDER BY c.created_at DESC"
+		query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
 		if !allComments {
 			query += " LIMIT 3"
 		}
@@ -203,14 +202,12 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		// _  = "SELECT u.*, c.* FROM `comments` AS c JOIN `users` AS u ON c.user_id = u.id WHERE c.post_id = ?"
-
-		// for i := 0; i < len(comments); i++ {
-		// 	err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// }
+		for i := 0; i < len(comments); i++ {
+			err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
+			if err != nil {
+				return nil, err
+			}
+		}
 
 		// reverse
 		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
