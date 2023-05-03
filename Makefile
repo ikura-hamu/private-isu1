@@ -56,7 +56,7 @@ endif
 # ベンチマーク前
 .PHONY: before-bench
 before-bench: set-db-conf	set-nginx-conf rm-slow-log	rm-access-log	restart
-	-@curl -X POST -d "{'content':'last commit: $(shell git log -1 --oneline)'}" $(WEBHOOK_URL) -s -o /dev/null
+	curl -X POST -d "{'content':'last commit: $(shell git log -1 --oneline)'}" $(WEBHOOK_URL) -s -o /dev/null
 
 # ベンチマーク後に計測結果送信
 .PHONY: after-bench
@@ -66,6 +66,7 @@ after-bench: alp alp-diff slow pprof-check
 .PHONY: pprof-record
 pprof-record:
 	go tool pprof -seconds=60 http://localhost:6060/debug/pprof/profile
+	echo "benchmark たぶん completed"
 
 # pprofで確認する
 .PHONY: pprof-check
@@ -103,7 +104,7 @@ alp-diff:
 install-tools:
 	sudo apt update
 	sudo apt upgrade
-	sudo apt install -y git unzip dstat tree
+	sudo apt install -y git unzip dstat tree graphviz
 	sudo apt-get install -y percona-toolkit
 
 #	uname -m でCPUのアーキテクチャを調べる
