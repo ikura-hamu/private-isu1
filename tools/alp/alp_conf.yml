@@ -23,10 +23,10 @@ matching_groups:            # array
   - /logout
   - /posts/[0-9a-zA-Z-]+
   - /posts
-  - /image/[0-9a-zA-Z-]+
+  - /image/[0-9a-zA-Z-.]+
   - /comment
   - /admin/banned
   - /initialize
   - /@[a-zA-Z]+
+  - /$
   - /[0-9a-zA-Z-]+
-  - /
