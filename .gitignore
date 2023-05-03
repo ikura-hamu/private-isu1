@@ -1,0 +1,4 @@
+.ssh/*
+server_id.sh
+webapp/*
+!webapp/golang/*

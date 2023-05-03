@@ -2,7 +2,7 @@ include server_id.sh
 
 # SERVER_ID  server_id.shで定義
 
-PROJECT_ROOT:=/home/isucon/ #/home/isuconを想定
+PROJECT_ROOT:=/home/isucon/private_isu #/home/isuconを想定
 APP_DIR:=$(PROJECT_ROOT)/webapp/golang
 
 USER_NAME:=isucon
@@ -28,10 +28,6 @@ ALP_LOGS:=/tmp/alp
 WEBHOOK_URL:=https://discord.com/api/webhooks/1103191010445635654/am8zeNTVVunqtfrLScK2wrBbi7fabhYzIKSbj1h-HBo6-mdMFrPkorithMj9jfF-YBQR
 
 # 使うやつ
-
-# 最初
-.PHONY: setup
-setup: install-tools git-setup1
 
 #====================#
 # ローカル  					#
@@ -113,33 +109,21 @@ install-tools:
 #	amdならそのまま
 	wget https://github.com/tkuchiki/alp/releases/download/v1.0.12/alp_linux_amd64.zip
 	unzip alp_linux_amd64.zip
-	install ./alp /usr/local/bin/alp
+	sudo install ./alp /usr/local/bin/alp
 #armならこっちにする
 #	wget https://github.com/tkuchiki/alp/releases/download/v1.0.12/alp_linux_arm64.zip
 # unzip alp_linux_arm64.zip
 	-@rm alp alp_linux_amd64.zip alp_linux_arm64.zip
 
-.PHONY: git-setup1
+.PHONY: git-setup
 git-setup1:
 	git config --global user.email "server@example.com"
 	git config --global user.name "server"
 
-	git init
-	git add 
-
-	touch .gitignore
-	echo .ssh/* >> .gitignore
-	echo server_id.sh >> .gitignore
-
-.PHONY: git-setup2
-git-setup2:
-	git init
 	git add .
-	git commit -m "init"
-	git branch -m main
+	git commit -m "server"
 
-	git remote add origin $(GIT_URL)
-	git pull origin main
+	git push origin master
 
 .PHONY: get-db-conf
 get-db-conf: 
