@@ -18,4 +18,15 @@ output: count,5xx,method,uri,sum,avg,min,max,p90,p99        # string(comma separ
 # - /api/isu/.+^
 # - /isu/[0-9a-zA-Z-]+/condition^
 matching_groups:            # array
-  - 
+  - /login
+  - /register
+  - /logout
+  - /posts/[0-9a-zA-Z-]+
+  - /posts
+  - /image/[0-9a-zA-Z-]+
+  - /comment
+  - /admin/banned
+  - /initialize
+  - /@[a-zA-Z]+
+  - /[0-9a-zA-Z-]+
+  - /
