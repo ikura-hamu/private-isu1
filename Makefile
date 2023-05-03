@@ -19,7 +19,7 @@ LOCAL_DB_CONF:=$(PROJECT_ROOT)/$(SERVER_ID)/etc/mysql
 LOCAL_NGINX_CONF:=$(PROJECT_ROOT)/$(SERVER_ID)/etc/nginx
 ALP_CONF:=$(PROJECT_ROOT)/tools/alp/alp_conf.yml
 
-SLOW_LOG_FILE:=/var/log/mysql/slow.log
+SLOW_LOG_FILE:=/var/log/mysql/mysql-slow.log
 ACCESS_LOG_FILE:=/var/log/nginx/access.log
 
 SLOW_LOGS:=/tmp/slow
