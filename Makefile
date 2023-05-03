@@ -1,17 +1,17 @@
 include server_id.sh
 
-# SERVER_ID  env.shで定義
+# SERVER_ID  server_id.shで定義
 
-PROJECT_ROOT:= #/home/isuconを想定
-APP_DIR:=$(PROJECT_ROOT)/webapp/go
+PROJECT_ROOT:=/home/isucon/ #/home/isuconを想定
+APP_DIR:=$(PROJECT_ROOT)/webapp/golang
 
-USER_NAME:=
+USER_NAME:=isucon
 
-GIT_URL:=
+GIT_URL:=git@github.com:ikura-hamu/private-isu1.git
 
 DB_SERVICE:=mysql
-APP_SERVICE:=
-APP_BIN:=
+APP_SERVICE:=isu-go
+APP_BIN:=$(APP_DIR)/app
 
 DB_CONF:=/etc/mysql
 NGINX_CONF:=/etc/nginx
@@ -25,7 +25,7 @@ ACCESS_LOG_FILE:=/var/log/nginx/access.log
 SLOW_LOGS:=/tmp/slow
 ALP_LOGS:=/tmp/alp
 
-WEBHOOK_URL:=
+WEBHOOK_URL:=https://discord.com/api/webhooks/1103191010445635654/am8zeNTVVunqtfrLScK2wrBbi7fabhYzIKSbj1h-HBo6-mdMFrPkorithMj9jfF-YBQR
 
 # 使うやつ
 
@@ -124,17 +124,12 @@ git-setup1:
 	git config --global user.email "server@example.com"
 	git config --global user.name "server"
 
+	git init
+	git add 
+
 	touch .gitignore
 	echo .ssh/* >> .gitignore
 	echo server_id.sh >> .gitignore
-
-	ssh-keygen -t ed25519
-	cat .ssh/id_ed25519.pub
-
-	echo "gitの設定ができました。"
-	echo "1. 上の公開鍵をGitHubのリポジトリに登録してください。"
-	echo "2. .gitignoreに追記します。echo {除外したいファイル} >> .gitignore を実行してください。"
-	echo "3. make git-setup2 を実行してください"
 
 .PHONY: git-setup2
 git-setup2:
