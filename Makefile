@@ -56,6 +56,7 @@ endif
 # ベンチマーク前
 .PHONY: before-bench
 before-bench: set-db-conf	set-nginx-conf rm-slow-log	rm-access-log	restart
+	-@curl -X POST -d "{'content':'last commit: $(shell git log -1 --oneline)'}" $(WEBHOOK_URL) -s -o /dev/null
 
 # ベンチマーク後に計測結果送信
 .PHONY: after-bench
@@ -77,7 +78,7 @@ pprof-check:
 slow:
 	-@ mkdir $(SLOW_LOGS)
 	sudo pt-query-digest --type slowlog $(SLOW_LOG_FILE) > $(SLOW_LOGS)/temp.txt
-	-@curl -X POST -F txt=@$(SLOW_LOGS)/temp.txt $(WEBHOOK_URL) -s -o /den/null
+	-@curl -X POST -F txt=@$(SLOW_LOGS)/temp.txt $(WEBHOOK_URL) -s -o /dev/null
 	mv $(SLOW_LOGS)/temp.txt $(SLOW_LOGS)/$(TZ=JST-9 date +%y%m%d_%H%M).txt
 
 # アクセスログ(alp)
