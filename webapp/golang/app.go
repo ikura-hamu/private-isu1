@@ -702,6 +702,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 func getImage(w http.ResponseWriter, r *http.Request) {
 	pidStr := chi.URLParam(r, "id")
 	pid, err := strconv.Atoi(pidStr)
+	log.Printf("getImage: %v", pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
