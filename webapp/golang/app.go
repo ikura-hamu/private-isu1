@@ -683,18 +683,17 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		log.Printf("failed to create file: %v", err)
 		return
 	}
-	defer func() {
-		err := f.Close()
-		if err != nil {
-			log.Printf("failed to close file: %v", err)
-		}
-	}()
 
 	n, err := f.Write(filedata)
 	log.Printf("file size %v: %v", pidStr, n)
 	if err != nil {
 		log.Printf("failed to write file: %v", err)
 		return
+	}
+
+	err = f.Close()
+	if err != nil {
+		log.Printf("failed to close file: %v", err)
 	}
 
 	http.Redirect(w, r, "/posts/"+pidStr, http.StatusFound)
