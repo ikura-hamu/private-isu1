@@ -55,8 +55,9 @@ endif
 
 # ベンチマーク前
 .PHONY: before-bench
-before-bench: set-db-conf	set-nginx-conf rm-slow-log	rm-access-log	restart
-	curl -X POST -d "{'content':'last commit: $(shell git log -1 --oneline)'}" $(WEBHOOK_URL) -s -o /dev/null
+before-bench: build set-db-conf	set-nginx-conf rm-slow-log	rm-access-log	restart
+	$(eval latest := $(shell git log -1 --oneline))
+	curl -X POST -H "Content-type: application/json" -d '{"content":"last commit: $(latest)"}' $(WEBHOOK_URL) -s -o /dev/null
 
 # ベンチマーク後に計測結果送信
 .PHONY: after-bench
