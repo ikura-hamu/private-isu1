@@ -120,7 +120,7 @@ func escapeshellarg(arg string) string {
 }
 
 func digest(src string) string {
-	out := hex.EncodeToString(openssl.Sha256(src))
+	out := hex.EncodeToString(openssl.Sha256(escapeshellarg(src)))
 
 	return strings.TrimSuffix(out, "\n")
 }
