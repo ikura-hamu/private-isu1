@@ -3,6 +3,7 @@ package main
 import (
 	crand "crypto/rand"
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"html/template"
 	"io"
@@ -126,7 +127,7 @@ func digest(src string) string {
 		return ""
 	}
 
-	return strings.TrimSuffix(string(h.Sum(nil)), "\n")
+	return strings.TrimSuffix(hex.EncodeToString(h.Sum(nil)), "\n")
 }
 
 func calculateSalt(accountName string) string {
