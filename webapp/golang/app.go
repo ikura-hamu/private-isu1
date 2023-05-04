@@ -684,8 +684,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	n, err := f.Write(filedata)
-	log.Printf("file size %v: %v", pidStr, n)
+	_, err = f.Write(filedata)
 	if err != nil {
 		log.Printf("failed to write file: %v", err)
 		return
@@ -702,7 +701,6 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 func getImage(w http.ResponseWriter, r *http.Request) {
 	pidStr := chi.URLParam(r, "id")
 	pid, err := strconv.Atoi(pidStr)
-	log.Printf("getImage: %v", pidStr)
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
