@@ -31,9 +31,10 @@ var (
 )
 
 const (
-	postsPerPage  = 20
-	ISO8601Format = "2006-01-02T15:04:05-07:00"
-	UploadLimit   = 10 * 1024 * 1024 // 10mb
+	postsPerPage     = 20
+	ISO8601Format    = "2006-01-02T15:04:05-07:00"
+	UploadLimit      = 10 * 1024 * 1024 // 10mb
+	imagesFolderPath = "../public/"
 )
 
 type User struct {
@@ -64,7 +65,7 @@ type Comment struct {
 	UserID    int       `db:"user_id"`
 	Comment   string    `db:"comment"`
 	CreatedAt time.Time `db:"created_at"`
-	User      User `db:"user"`
+	User      User      `db:"user"`
 }
 
 func init() {
@@ -619,15 +620,19 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mime := ""
+	ext := ""
 	if file != nil {
 		// 投稿のContent-Typeからファイルのタイプを決定する
 		contentType := header.Header["Content-Type"][0]
 		if strings.Contains(contentType, "jpeg") {
 			mime = "image/jpeg"
+			ext = "jpg"
 		} else if strings.Contains(contentType, "png") {
 			mime = "image/png"
+			ext = "png"
 		} else if strings.Contains(contentType, "gif") {
 			mime = "image/gif"
+			ext = "gif"
 		} else {
 			session := getSession(r)
 			session.Values["notice"] = "投稿できる画像形式はjpgとpngとgifだけです"
@@ -653,12 +658,11 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := "INSERT INTO `posts` (`user_id`, `mime`, `imgdata`, `body`) VALUES (?,?,?,?)"
+	query := "INSERT INTO `posts` (`user_id`, `mime`, `body`) VALUES (?,?,?)"
 	result, err := db.Exec(
 		query,
 		me.ID,
 		mime,
-		filedata,
 		r.FormValue("body"),
 	)
 	if err != nil {
@@ -672,7 +676,27 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Redirect(w, r, "/posts/"+strconv.FormatInt(pid, 10), http.StatusFound)
+	pidStr := strconv.FormatInt(pid, 10)
+
+	f, err := os.Create(imagesFolderPath + pidStr + "." + ext)
+	if err != nil {
+		log.Printf("failed to create file: %v", err)
+		return
+	}
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			log.Printf("failed to close file: %v", err)
+		}
+	}()
+
+	_, err = f.Write(filedata)
+	if err != nil {
+		log.Printf("failed to write file: %v", err)
+		return
+	}
+
+	http.Redirect(w, r, "/posts/"+pidStr, http.StatusFound)
 }
 
 func getImage(w http.ResponseWriter, r *http.Request) {
@@ -701,6 +725,26 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 			return
 		}
+
+		// ファイルを保存する
+		f, err := os.Create(imagesFolderPath + pidStr + "." + ext)
+		defer func() {
+			err := f.Close()
+			if err != nil {
+				log.Printf("failed to close file: %v", err)
+			}
+		}()
+
+		if err != nil {
+			log.Printf("faild to create file: %v", err)
+			return
+		}
+		_, err = f.Write(post.Imgdata)
+		if err != nil {
+			log.Printf("failed to write file: %v", err)
+			return
+		}
+
 		return
 	}
 
