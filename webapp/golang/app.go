@@ -193,7 +193,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 		}
 
 		// query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
-		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name`, users.passhash AS `user.passhash`, users.authority AS `user.authority`, users.del_flg AS `user.del_flg`, users.created_at AS `user.created_at` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = 10 ORDER BY comments.created_at DESC LIMIT 3"
+		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name`, users.passhash AS `user.passhash`, users.authority AS `user.authority`, users.del_flg AS `user.del_flg`, users.created_at AS `user.created_at` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = 10 ORDER BY comments.created_at DESC"
 		if !allComments {
 			query += " LIMIT 3"
 		}
