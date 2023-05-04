@@ -691,7 +691,7 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	n, err := f.Write(filedata)
-	log.Printf("file size: %v", n)
+	log.Printf("file size %v: %v", pidStr, n)
 	if err != nil {
 		log.Printf("failed to write file: %v", err)
 		return
