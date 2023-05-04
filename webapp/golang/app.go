@@ -2,7 +2,7 @@ package main
 
 import (
 	crand "crypto/rand"
-	"encoding/hex"
+	"crypto/sha512"
 	"fmt"
 	"html/template"
 	"io"
@@ -19,7 +19,6 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	gsm "github.com/bradleypeabody/gorilla-sessions-memcache"
-	"github.com/forgoer/openssl"
 	"github.com/go-chi/chi/v5"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
@@ -120,9 +119,14 @@ func escapeshellarg(arg string) string {
 }
 
 func digest(src string) string {
-	out := hex.EncodeToString(openssl.Sha256(escapeshellarg(src)))
+	h := sha512.New()
+	_, err := h.Write([]byte(src))
+	if err != nil {
+		log.Print(err)
+		return ""
+	}
 
-	return strings.TrimSuffix(out, "\n")
+	return strings.TrimSuffix(string(h.Sum(nil)), "\n")
 }
 
 func calculateSalt(accountName string) string {
