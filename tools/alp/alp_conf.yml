@@ -28,7 +28,7 @@ matching_groups: # array
   - /admin/banned
   - /initialize
   - /@[a-zA-Z]+
-  - /favicon.icon
+  - /favicon
   - /js/
   - /css/
   - /$
