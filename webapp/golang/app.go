@@ -99,12 +99,19 @@ func (c *CommentCountCache) getCommentCountCache(key int) int {
 		log.Printf("failed to get comment count: %v", err)
 		return 0 //ほんとは0は良くない
 	}
+	c.items[key] = &co
+
 	return co
 }
 
 func (c *CommentCountCache) addCommentCountCache(key int, diff int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if *c.items[key] == 0 {
+		c.items[key] = &diff
+		return
+	}
 
 	n := *c.items[key] + diff
 	c.items[key] = &n
