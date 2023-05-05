@@ -28,9 +28,10 @@ import (
 )
 
 var (
-	db           *sqlx.DB
-	store        *gsm.MemcacheStore
-	commentCache CommentCache
+	db                *sqlx.DB
+	store             *gsm.MemcacheStore
+	commentCache      CommentCache
+	commentCountCache CommentCountCache
 )
 
 type CommentCache struct {
@@ -69,6 +70,42 @@ func (c *CommentCache) updateCommentCache(key int, comment Comment) {
 	} else {
 		c.items[key] = &[]Comment{comment}
 	}
+}
+
+type CommentCountCache struct {
+	items map[int]*int
+	mu    sync.Mutex
+}
+
+func (c *CommentCountCache) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items = make(map[int]*int)
+}
+
+func (c *CommentCountCache) getCommentCountCache(key int) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var count *int
+	count, ok := c.items[key]
+	if ok {
+		return *count
+	}
+	err := db.Get(count, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", key)
+	if err != nil {
+		log.Printf("failed to get comment count: %v", err)
+		return 0 //ほんとは0は良くない
+	}
+	return *count
+}
+
+func (c *CommentCountCache) addCommentCountCache(key int, diff int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	n := *c.items[key] + diff
+	c.items[key] = &n
 }
 
 const (
@@ -229,10 +266,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			continue
 		}
 
-		err = db.Get(&p.CommentCount, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", p.ID)
-		if err != nil {
-			return nil, err
-		}
+		p.CommentCount = commentCountCache.getCommentCountCache(p.ID)
 
 		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name`, users.passhash AS `user.passhash`, users.authority AS `user.authority`, users.del_flg AS `user.del_flg`, users.created_at AS `user.created_at` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at DESC"
 
@@ -330,6 +364,7 @@ func getTemplPath(filename string) string {
 
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	commentCache.Reset()
+	commentCountCache.Reset()
 
 	dbInitialize()
 	w.WriteHeader(http.StatusOK)
@@ -849,6 +884,8 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: time.Now(),
 	})
 
+	commentCountCache.addCommentCountCache(postID, 1)
+
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
 
@@ -920,6 +957,7 @@ func main() {
 	}()
 
 	commentCache.Reset()
+	commentCountCache.Reset()
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
