@@ -911,7 +911,7 @@ func main() {
 		log.Println(http.ListenAndServe(":6060", nil))
 	}()
 
-	commentCache = CommentCache{}
+	commentCache.Reset()
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
