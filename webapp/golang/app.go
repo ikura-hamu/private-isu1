@@ -60,7 +60,15 @@ func (c *CommentCache) setCommentCache(key int, comments []Comment) {
 func (c *CommentCache) updateCommentCache(key int, comment Comment) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.items[key] = &[]Comment{(*c.items[key])[1], (*c.items[key])[2], comment}
+	l := len(*c.items[key])
+	if l >= 3 {
+		c.items[key] = &[]Comment{(*c.items[key])[1], (*c.items[key])[2], comment}
+	} else if l > 0 {
+		cc := append(*c.items[key], comment)
+		c.items[key] = &cc
+	} else {
+		c.items[key] = &[]Comment{comment}
+	}
 }
 
 const (
