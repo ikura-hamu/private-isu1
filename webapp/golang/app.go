@@ -32,6 +32,7 @@ var (
 	store             *gsm.MemcacheStore
 	commentCache      CommentCache
 	commentCountCache CommentCountCache
+	accountNameCache AccountNameCache
 )
 
 type CommentCache struct {
@@ -117,6 +118,41 @@ func (c *CommentCountCache) addCommentCountCache(key int, diff int) {
 	c.items[key] = &n
 }
 
+type AccountNameCache struct {
+	items map[int]*string
+	mu sync.Mutex
+}
+
+func (c *AccountNameCache) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items = make(map[int]*string)
+}
+
+func (c *AccountNameCache) getUserNameCache(key int) string {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return *c.items[key]
+}
+
+func (c *AccountNameCache) setUserNameCache(key int, name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items[key] = &name
+}
+
+func (c *AccountNameCache) initUserNameCache(users []User) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	for i := range users {
+		c.items[users[i].ID] = &users[i].AccountName
+	}
+}
+
 const (
 	postsPerPage     = 20
 	ISO8601Format    = "2006-01-02T15:04:05-07:00"
@@ -177,6 +213,14 @@ func dbInitialize() {
 	for _, sql := range sqls {
 		db.Exec(sql)
 	}
+
+	var users []User
+	err := db.Select(&users, "SELECT `id`, `account_name` FROM `users`")
+	if err != nil {
+		log.Printf("failed to get users: %v", err)
+		return
+	}
+	accountNameCache.initUserNameCache(users)
 }
 
 func tryLogin(accountName, password string) *User {
@@ -374,6 +418,7 @@ func getTemplPath(filename string) string {
 func getInitialize(w http.ResponseWriter, r *http.Request) {
 	commentCache.Reset()
 	commentCountCache.Reset()
+	accountNameCache.Reset()
 
 	dbInitialize()
 	w.WriteHeader(http.StatusOK)
@@ -483,6 +528,8 @@ func postRegister(w http.ResponseWriter, r *http.Request) {
 	session.Values["csrf_token"] = secureRandomStr(16)
 	session.Save(r, w)
 
+	accountNameCache.setUserNameCache(int(uid), accountName)
+
 	http.Redirect(w, r, "/", http.StatusFound)
 }
 
@@ -510,13 +557,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range results {
-		var user User
-		err := db.Get(&user, "SELECT * FROM `users` WHERE `id` = ?", results[i].UserID)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		results[i].User = user
+		results[i].User.AccountName = accountNameCache.getUserNameCache(results[i].UserID)
 	}
 	
 	posts, err := makePosts(results, getCSRFToken(r), false)
@@ -659,13 +700,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for i := range results {
-		var user User
-		err = db.Get(&user, "SELECT * FROM `users` WHERE `id` = ?", results[i].UserID)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		results[i].User = user
+		results[i].User.AccountName = accountNameCache.getUserNameCache(results[i].UserID)
 	}
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
@@ -997,6 +1032,7 @@ func main() {
 
 	commentCache.Reset()
 	commentCountCache.Reset()
+	accountNameCache.Reset()
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
