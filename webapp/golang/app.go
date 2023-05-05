@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -27,9 +28,40 @@ import (
 )
 
 var (
-	db    *sqlx.DB
-	store *gsm.MemcacheStore
+	db           *sqlx.DB
+	store        *gsm.MemcacheStore
+	commentCache CommentCache
 )
+
+type CommentCache struct {
+	items map[int]*[]Comment
+	mu    sync.Mutex
+}
+
+func (c *CommentCache) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items = make(map[int]*[]Comment)
+}
+
+func (c *CommentCache) getCommentCache(key int) (*[]Comment, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	comments, ok := c.items[key]
+	return comments, ok
+}
+
+func (c *CommentCache) setCommentCache(key int, comments []Comment) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items[key] = &comments
+}
+
+func (c *CommentCache) updateCommentCache(key int, comment Comment) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items[key] = &[]Comment{(*c.items[key])[1], (*c.items[key])[2], comment}
+}
 
 const (
 	postsPerPage     = 20
@@ -194,23 +226,44 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 			return nil, err
 		}
 
-		// query := "SELECT * FROM `comments` WHERE `post_id` = ? ORDER BY `created_at` DESC"
 		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name`, users.passhash AS `user.passhash`, users.authority AS `user.authority`, users.del_flg AS `user.del_flg`, users.created_at AS `user.created_at` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at DESC"
+
 		if !allComments {
 			query += " LIMIT 3"
+			c, ok := commentCache.getCommentCache(p.ID)
+			if ok {
+				p.Comments = *c
+				posts = append(posts, p)
+
+				if len(posts) >= postsPerPage {
+					break
+				}
+				continue
+			} else {
+				var comments []Comment
+				err = db.Select(&comments, query, p.ID)
+				if err != nil {
+					return nil, err
+				}
+				for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
+					comments[i], comments[j] = comments[j], comments[i]
+				}
+				commentCache.setCommentCache(p.ID, comments)
+				p.Comments = comments
+				posts = append(posts, p)
+
+				if len(posts) >= postsPerPage {
+					break
+				}
+				continue
+			}
 		}
+
 		var comments []Comment
 		err = db.Select(&comments, query, p.ID)
 		if err != nil {
 			return nil, err
 		}
-
-		// for i := 0; i < len(comments); i++ {
-		// 	err := db.Get(&comments[i].User, "SELECT * FROM `users` WHERE `id` = ?", comments[i].UserID)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// }
 
 		// reverse
 		for i, j := 0, len(comments)-1; i < j; i, j = i+1, j-1 {
@@ -268,6 +321,8 @@ func getTemplPath(filename string) string {
 }
 
 func getInitialize(w http.ResponseWriter, r *http.Request) {
+	commentCache.Reset()
+
 	dbInitialize()
 	w.WriteHeader(http.StatusOK)
 }
@@ -770,11 +825,21 @@ func postComment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := "INSERT INTO `comments` (`post_id`, `user_id`, `comment`) VALUES (?,?,?)"
-	_, err = db.Exec(query, postID, me.ID, r.FormValue("comment"))
+	result, err := db.Exec(query, postID, me.ID, r.FormValue("comment"))
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	commentId, _ := result.LastInsertId()
+	commentCache.updateCommentCache(postID, Comment{
+		ID:        int(commentId),
+		PostID:    postID,
+		UserID:    me.ID,
+		Comment:   r.FormValue("comment"),
+		User:      me,
+		CreatedAt: time.Now(),
+	})
 
 	http.Redirect(w, r, fmt.Sprintf("/posts/%d", postID), http.StatusFound)
 }
@@ -845,6 +910,8 @@ func main() {
 	go func() {
 		log.Println(http.ListenAndServe(":6060", nil))
 	}()
+
+	commentCache = CommentCache{}
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
