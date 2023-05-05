@@ -640,7 +640,7 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= '2016-01-02T11:46:08+09:00' AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
+	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= ? AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
 	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 30", t.Format(ISO8601Format))
 	err = db.Select(&results, q, t.Format(ISO8601Format))
 	if err != nil {
