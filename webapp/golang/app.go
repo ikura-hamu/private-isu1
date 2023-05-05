@@ -92,12 +92,14 @@ func (c *CommentCountCache) getCommentCountCache(key int) int {
 	if ok {
 		return *count
 	}
-	err := db.Get(count, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", key)
+
+	var co int
+	err := db.Get(&co, "SELECT COUNT(*) AS `count` FROM `comments` WHERE `post_id` = ?", key)
 	if err != nil {
 		log.Printf("failed to get comment count: %v", err)
 		return 0 //ほんとは0は良くない
 	}
-	return *count
+	return co
 }
 
 func (c *CommentCountCache) addCommentCountCache(key int, diff int) {
