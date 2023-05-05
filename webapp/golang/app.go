@@ -511,7 +511,7 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	for i := range results {
 		var user User
-		err := db.Select(&user, "SELECT * FROM `users` WHERE `id` = ?", results[i].UserID)
+		err := db.Get(&user, "SELECT * FROM `users` WHERE `id` = ?", results[i].UserID)
 		if err != nil {
 			log.Print(err)
 			return
