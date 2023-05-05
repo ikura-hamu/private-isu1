@@ -500,13 +500,23 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 	results := []Post{}
 
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name as `user.account_name` FROM posts AS p JOIN users AS `u` ON p.user_id = u.id WHERE u.del_flg=0 ORDER by p.created_at desc, p.id ASC LIMIT 20"
+	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name as `user.account_name` FROM posts AS p JOIN users AS `u` ON p.user_id = u.id WHERE u.del_flg=0 ORDER by p.created_at desc, p.id ASC LIMIT 20"
 
-	// err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC LIMIT 30")
-	err := db.Select(&results, q)
+	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC LIMIT 30")
+	// err := db.Select(&results, q)
 	if err != nil {
 		log.Print(err)
 		return
+	}
+
+	for i := range results {
+		var user User
+		err := db.Select(&user, "SELECT * FROM `user` WHERE `id` = ?", results[i].UserID)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		results[i].User = user
 	}
 	
 	posts, err := makePosts(results, getCSRFToken(r), false)
@@ -640,12 +650,22 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= ? AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
-	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 30", t.Format(ISO8601Format))
-	err = db.Select(&results, q, t.Format(ISO8601Format))
+	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= ? AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
+	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 30", t.Format(ISO8601Format))
+	// err = db.Select(&results, q, t.Format(ISO8601Format))
 	if err != nil {
 		log.Print(err)
 		return
+	}
+
+	for i := range results {
+		var user User
+		err = db.Get(&user, "SELECT * FROM `users` WHERE `id` = ?", results[i].UserID)
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		results[i].User = user
 	}
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
