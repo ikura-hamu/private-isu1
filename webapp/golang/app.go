@@ -308,16 +308,11 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 	var posts []Post
 
 	for _, p := range results {
-		// err := db.Get(&p.User, "SELECT * FROM `users` WHERE `id` = ?", p.UserID)
-		// if err != nil {
-		// 	return nil, err
-		// }
-
 		p.CSRFToken = csrfToken
 
-		// if p.User.DelFlg != 0 {
-		// 	continue
-		// }
+		if p.User.DelFlg != 0 {
+			continue
+		}
 
 		p.CommentCount = commentCountCache.getCommentCountCache(p.ID)
 
@@ -733,13 +728,15 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name`, u.passhash as `user.passhash`, u.authority as `user.authority`, u.del_flg as `user.del_flg`, u.created_at as `user.created_at` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
-	// err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
-	err = db.Select(&results, q, pid)
+	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name`, u.passhash as `user.passhash`, u.authority as `user.authority`, u.del_flg as `user.del_flg`, u.created_at as `user.created_at` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
+	err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	// err = db.Select(&results, q, pid)
 	if err != nil {
 		log.Print(err)
 		return
 	}
+
+	results[0].User.AccountName = accountNameCache.getUserNameCache(results[0].UserID)
 
 	posts, err := makePosts(results, getCSRFToken(r), true)
 	if err != nil {
