@@ -321,7 +321,7 @@ func makePosts(results []Post, csrfToken string, allComments bool) ([]Post, erro
 
 		p.CommentCount = commentCountCache.getCommentCountCache(p.ID)
 
-		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name`, users.passhash AS `user.passhash`, users.authority AS `user.authority`, users.del_flg AS `user.del_flg`, users.created_at AS `user.created_at` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at DESC"
+		query := "SELECT `comments`.*, users.id AS `user.id`, users.account_name AS `user.account_name` FROM `comments` JOIN `users` ON comments.user_id = users.id WHERE comments.post_id = ? ORDER BY comments.created_at DESC"
 
 		if !allComments {
 			query += " LIMIT 3"
@@ -733,7 +733,7 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	results := []Post{}
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name`, u.passhash as `user.passhash`, u.authority as `user.authority`, u.del_flg as `user.del_flg`, u.created_at as `user.created_at` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
+	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
 	// err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
 	err = db.Select(&results, q, pid)
 	if err != nil {
