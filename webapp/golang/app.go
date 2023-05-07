@@ -201,7 +201,6 @@ func (c *PostCache) getPostsCache(start int, count int) []Post {
 	var posts []Post
 	for i := start; len(posts) < count && i > 0; i-- {
 		p, ok := c.items[i]
-		log.Printf("start:%v, count:%v, i: %v, ok: %v\n", start, count, i, ok)
 		if ok {
 			posts = append(posts, *p)
 		}
