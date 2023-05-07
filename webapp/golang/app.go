@@ -199,7 +199,7 @@ func (c *PostCache) getPostsCache(start int, count int) []Post {
 	}
 
 	var posts []Post
-	for i := start; i > start-count || i > 0; {
+	for i := start; i > start-count && i > 0; {
 		p, ok := c.items[i]
 		log.Printf("start:%v, count:%v, i: %v, ok: %v\n", start, count, i, ok)
 		if ok {
