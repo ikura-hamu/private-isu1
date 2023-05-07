@@ -33,6 +33,7 @@ var (
 	commentCache      CommentCache
 	commentCountCache CommentCountCache
 	accountNameCache  AccountNameCache
+	postCache         PostCache
 )
 
 type CommentCache struct {
@@ -160,6 +161,70 @@ const (
 	imagesFolderPath = "../public/image/"
 )
 
+type PostCache struct {
+	items map[int]*Post
+	// map[userId][]postId
+	userPostsMap map[int][]*int
+	postsCount   int
+	mu           sync.Mutex
+}
+
+func (c *PostCache) Reset() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items = make(map[int]*Post)
+	c.userPostsMap = make(map[int][]*int)
+	c.postsCount = 0
+}
+
+func (c *PostCache) initPostCache() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	var posts []Post
+	err := db.Select(&posts, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts`")
+	if err != nil {
+		log.Printf("failed to get posts: %v\n", err)
+		return
+	}
+
+	for i := range posts {
+		c.items[posts[i].ID] = &posts[i]
+		c.userPostsMap[posts[i].UserID] = append(c.userPostsMap[posts[i].UserID], &posts[i].ID)
+	}
+
+	c.postsCount = len(posts)
+}
+
+func (c *PostCache) getPostsCache(start int, count int) []Post {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if start < 0 {
+		start = c.postsCount
+	}
+
+	var posts []Post
+	for i := start; i > start-count || i < 0; {
+		p, ok := c.items[i]
+		if ok {
+			i--
+			posts = append(posts, *p)
+		}
+	}
+	return posts
+}
+
+func (c *PostCache) addPostCache(key int, post Post) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.items[key] = &post
+	c.userPostsMap[post.UserID] = append(c.userPostsMap[post.UserID], &post.ID)
+	c.postsCount += 1
+}
+
 var (
 	getIndexTemp = template.Must(
 		template.New("layout.html").
@@ -268,6 +333,8 @@ func dbInitialize() {
 		return
 	}
 	accountNameCache.initUserNameCache(users)
+
+	postCache.initPostCache()
 }
 
 func tryLogin(accountName, password string) *User {
@@ -466,6 +533,7 @@ func getInitialize(w http.ResponseWriter, r *http.Request) {
 	commentCache.Reset()
 	commentCountCache.Reset()
 	accountNameCache.Reset()
+	postCache.Reset()
 
 	dbInitialize()
 	w.WriteHeader(http.StatusOK)
@@ -592,16 +660,16 @@ func getLogout(w http.ResponseWriter, r *http.Request) {
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	me := getSessionUser(r)
 
-	results := []Post{}
+	results := postCache.getPostsCache(-1, 30)
 
 	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name as `user.account_name` FROM posts AS p JOIN users AS `u` ON p.user_id = u.id WHERE u.del_flg=0 ORDER by p.created_at desc, p.id ASC LIMIT 20"
 
-	err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC LIMIT 30")
-	// err := db.Select(&results, q)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// err := db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` ORDER BY `created_at` DESC LIMIT 30")
+	// // err := db.Select(&results, q)
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
 
 	for i := range results {
 		results[i].User.AccountName = accountNameCache.getUserNameCache(results[i].UserID)
@@ -863,6 +931,13 @@ func postIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	postCache.addPostCache(int(pid), Post{
+		ID:     int(pid),
+		UserID: me.ID,
+		Mime:   mime,
+		Body:   r.FormValue("body"),
+	})
+
 	pidStr := strconv.FormatInt(pid, 10)
 
 	f, err := os.Create(imagesFolderPath + pidStr + "." + ext)
@@ -1044,6 +1119,9 @@ func main() {
 	commentCache.Reset()
 	commentCountCache.Reset()
 	accountNameCache.Reset()
+	postCache.Reset()
+
+	postCache.initPostCache()
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
