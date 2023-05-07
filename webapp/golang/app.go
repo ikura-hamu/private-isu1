@@ -1144,11 +1144,6 @@ func postAdminBanned(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	//pprof
-	go func() {
-		log.Println(http.ListenAndServe(":6060", nil))
-	}()
-
 	commentCache.Reset()
 	commentCountCache.Reset()
 	accountNameCache.Reset()
