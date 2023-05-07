@@ -1120,22 +1120,6 @@ func main() {
 	accountNameCache.Reset()
 	postCache.Reset()
 
-	var users []User
-	err := db.Select(&users, "SELECT `id`, `account_name` FROM `users`")
-	if err != nil {
-		log.Printf("failed to get users: %v", err)
-		return
-	}
-	accountNameCache.initUserNameCache(users)
-
-	var posts []Post
-	err = db.Select(&posts, "SELECT `id`, `user_id`, `mime`, `created_at`, `body` FROM `posts`")
-	if err != nil {
-		log.Printf("failed to get posts: %v\n", err)
-		return
-	}
-	postCache.initPostCache(posts)
-
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
 		host = "localhost"
@@ -1144,7 +1128,7 @@ func main() {
 	if port == "" {
 		port = "3306"
 	}
-	_, err = strconv.Atoi(port)
+	_, err := strconv.Atoi(port)
 	if err != nil {
 		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
 	}
@@ -1172,6 +1156,22 @@ func main() {
 		log.Fatalf("Failed to connect to DB: %s.", err.Error())
 	}
 	defer db.Close()
+
+	var users []User
+	err = db.Select(&users, "SELECT `id`, `account_name` FROM `users`")
+	if err != nil {
+		log.Printf("failed to get users: %v", err)
+		return
+	}
+	accountNameCache.initUserNameCache(users)
+
+	var posts []Post
+	err = db.Select(&posts, "SELECT `id`, `user_id`, `mime`, `created_at`, `body` FROM `posts`")
+	if err != nil {
+		log.Printf("failed to get posts: %v\n", err)
+		return
+	}
+	postCache.initPostCache(posts)
 
 	r := chi.NewRouter()
 
