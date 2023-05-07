@@ -785,14 +785,19 @@ func getPosts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= ? AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 30", t.Format(ISO8601Format))
-	// err = db.Select(&results, q, t.Format(ISO8601Format))
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	var lastPostId int
+	err = db.Get(&lastPostId, "SELECT `id` from posts WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 1", t.Format(ISO8601Format))
+
+	// results := []Post{}
+	// // q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id AS `user.id`, u.account_name AS `user.account_name` FROM posts AS p JOIN users as `u` ON p.user_id = u.id WHERE p.created_at <= ? AND u.del_flg=0 ORDER BY p.created_at DESC, p.id ASC limit 20"
+	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `created_at` <= ? ORDER BY `created_at` DESC LIMIT 30", t.Format(ISO8601Format))
+	// // err = db.Select(&results, q, t.Format(ISO8601Format))
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	results := postCache.getPostsCache(lastPostId, 30)
 
 	for i := range results {
 		results[i].User.AccountName = accountNameCache.getUserNameCache(results[i].UserID)
