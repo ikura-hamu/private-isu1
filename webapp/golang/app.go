@@ -820,14 +820,16 @@ func getPostsID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
-	// err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
-	err = db.Select(&results, q, pid)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// results := []Post{}
+	// q := "SELECT p.`id`, p.`user_id`, p.`body`, p.`mime`, p.`created_at`, u.id as `user.id`, u.account_name as `user.account_name` from posts as p join users as `u` on p.user_id = u.id where p.id = ? and u.del_flg=0;"
+	// // err = db.Select(&results, "SELECT * FROM `posts` WHERE `id` = ?", pid)
+	// err = db.Select(&results, q, pid)
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	results := postCache.getPostsCache(pid, 1)
 
 	posts, err := makePosts(results, getCSRFToken(r), true)
 	if err != nil {
