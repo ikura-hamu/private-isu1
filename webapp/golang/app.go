@@ -178,16 +178,9 @@ func (c *PostCache) Reset() {
 	c.postsCount = 0
 }
 
-func (c *PostCache) initPostCache() {
+func (c *PostCache) initPostCache(posts []Post) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	var posts []Post
-	err := db.Select(&posts, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts`")
-	if err != nil {
-		log.Printf("failed to get posts: %v\n", err)
-		return
-	}
 
 	for i := range posts {
 		c.items[posts[i].ID] = &posts[i]
@@ -334,7 +327,13 @@ func dbInitialize() {
 	}
 	accountNameCache.initUserNameCache(users)
 
-	postCache.initPostCache()
+	var posts []Post
+	err = db.Select(&posts, "SELECT `id`, `user_id`, `mime`, `created_at`, `body` FROM `posts`")
+	if err != nil {
+		log.Printf("failed to get posts: %v\n", err)
+		return
+	}
+	postCache.initPostCache(posts)
 }
 
 func tryLogin(accountName, password string) *User {
@@ -1121,7 +1120,21 @@ func main() {
 	accountNameCache.Reset()
 	postCache.Reset()
 
-	postCache.initPostCache()
+	var users []User
+	err := db.Select(&users, "SELECT `id`, `account_name` FROM `users`")
+	if err != nil {
+		log.Printf("failed to get users: %v", err)
+		return
+	}
+	accountNameCache.initUserNameCache(users)
+
+	var posts []Post
+	err = db.Select(&posts, "SELECT `id`, `user_id`, `mime`, `created_at`, `body` FROM `posts`")
+	if err != nil {
+		log.Printf("failed to get posts: %v\n", err)
+		return
+	}
+	postCache.initPostCache(posts)
 
 	host := os.Getenv("ISUCONP_DB_HOST")
 	if host == "" {
@@ -1131,7 +1144,7 @@ func main() {
 	if port == "" {
 		port = "3306"
 	}
-	_, err := strconv.Atoi(port)
+	_, err = strconv.Atoi(port)
 	if err != nil {
 		log.Fatalf("Failed to read DB port number from an environment variable ISUCONP_DB_PORT.\nError: %s", err.Error())
 	}
