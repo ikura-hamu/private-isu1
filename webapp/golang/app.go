@@ -226,7 +226,7 @@ func (c *PostCache) getUserPostsCache(userId int, count int) []Post {
 
 	posts := make([]Post, 0, count)
 
-	for i := 0; i < count; i++ {
+	for i := 0; i < count && co-1-i >= 0; i++ {
 		posts = append(posts, *c.items[*allPostIds[co-1-i]])
 	}
 
