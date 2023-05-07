@@ -217,6 +217,29 @@ func (c *PostCache) addPostCache(key int, post Post) {
 	c.postsCount += 1
 }
 
+func (c *PostCache) getUserPostsCache(userId int, count int) []Post {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	allPostIds := c.userPostsMap[userId]
+	co := len(allPostIds)
+
+	var posts []Post
+
+	for i := 0; i < count; i++ {
+		posts = append(posts, *c.items[*allPostIds[co-1-i]])
+	}
+
+	return posts
+}
+
+func (c *PostCache) getUserPostIds(userId int) []*int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	return c.userPostsMap[userId]
+}
+
 var (
 	getIndexTemp = template.Must(
 		template.New("layout.html").
@@ -702,12 +725,14 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	results := []Post{}
-	err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC LIMIT 20", user.ID)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// results := []Post{}
+	// err = db.Select(&results, "SELECT `id`, `user_id`, `body`, `mime`, `created_at` FROM `posts` WHERE `user_id` = ? ORDER BY `created_at` DESC LIMIT 20", user.ID)
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+
+	results := postCache.getUserPostsCache(user.ID, 20)
 
 	posts, err := makePosts(results, getCSRFToken(r), false)
 	if err != nil {
@@ -726,12 +751,15 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postIDs := []int{}
-	err = db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
-	if err != nil {
-		log.Print(err)
-		return
-	}
+	// postIDs := []int{}
+	// err = db.Select(&postIDs, "SELECT `id` FROM `posts` WHERE `user_id` = ?", user.ID)
+	// if err != nil {
+	// 	log.Print(err)
+	// 	return
+	// }
+	// postCount := len(postIDs)
+
+	postIDs := postCache.getUserPostIds(user.ID)
 	postCount := len(postIDs)
 
 	commentedCount := 0
@@ -745,7 +773,7 @@ func getAccountName(w http.ResponseWriter, r *http.Request) {
 		// convert []int -> []interface{}
 		args := make([]interface{}, len(postIDs))
 		for i, v := range postIDs {
-			args[i] = v
+			args[i] = *v
 		}
 
 		err = db.Get(&commentedCount, "SELECT COUNT(*) AS count FROM `comments` WHERE `post_id` IN ("+placeholder+")", args...)
